@@ -1,3 +1,6 @@
+from flask import Flask, request, jsonify
+import json
+import random
 from flask import Flask, request, jsonify,json, redirect, current_app
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -42,7 +45,7 @@ CORS(app, support_credentials=True)
 # CORS(app, resources={r"/*": {"origins": "http://localhost:3000'"}})
 # CORS(app, resources={r"/*": {"origins": "*"}})
 
-stripe.api_key = 'sk_PshJHHvYUmbkgEOCV9NuT3BlbkFJwDfk5J04dPwWpzAAzX23'
+stripe.api_key = 'sk_kf9XnCEDDGIXp2Qko1KrT3BlbkFJz0HZPG5Fy0iYl1Zn7nGc'
 # stripe.api_key = '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'
 
 DATABASE_URI = "postgresql://default:6rTi7hckwbRv@ep-odd-violet-a44e653c-pooler.us-east-1.postgres.vercel-storage.com:5432/verceldb"
@@ -172,13 +175,13 @@ def get_transcript():
         return jsonify({'error': 'Missing YouTube URL in request payload'})
 
     try:
-        # Extract video ID from YouTube URL
+        
         video_id = youtube_url.split('v=')[1]
         
-        # Fetch transcript in Italian language ('it')
+       
         transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['it'])
 
-        # Extract text from transcript
+        
         transcript_text = ' '.join([item['text'] for item in transcript_list])
         print("Transcript Text: ", transcript_text)
         if len(transcript_text) > 8000:
@@ -186,7 +189,6 @@ def get_transcript():
         print(len(transcript_text))
         return transcript_text
 
-        # return jsonify({'transcript': transcript_text})
     except Exception as e:
         return jsonify({'error': str(e)})
 
@@ -232,14 +234,14 @@ def create_lesson_plan():
         return jsonify({'message': str(e)}), 500
 
 
-
 class CustomError(Exception):
     """Custom exception class."""
     pass
+
+
 @app.route('/pdf-lesson-planner', methods=['POST'])
 def pdf_lesson_planner():
     try:
-        
         if 'file' not in request.files:
             return jsonify({'message': 'No file part'}), 400
 
@@ -252,15 +254,12 @@ def pdf_lesson_planner():
 
             text = ""
             for page in range(len(pdfReader.pages)):
-
                 text += pdfReader.pages[page].extract_text()
 
-            response = generate_lesson_plan(text)
+            lesson_plan = generate_lesson_plan(text)
+            quiz_questions = generate_quiz_from_lesson_plan(lesson_plan)
 
-            
-            return jsonify(response), 200
-
-            
+            return jsonify({'lesson_plan': lesson_plan, 'quiz_questions': quiz_questions}), 200
         else:
             return jsonify({'message': 'Invalid file type'}), 400
 
@@ -276,7 +275,8 @@ def generate_lesson_plan(text):
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_message_pdf},
-                {"role": "user", "content": json.dumps(text)},
+                # Prefix with language
+                {"role": "user", "content": f"Italian: {text}"},
             ],
         )
         lesson_plan = response.choices[0].message.content
@@ -285,6 +285,28 @@ def generate_lesson_plan(text):
     except Exception as e:
         print(e)
         raise CustomError("Error generating lesson plan from PDF.")
+
+
+def generate_quiz_from_lesson_plan(lesson_plan):
+    try:
+        system_message_quiz = "Create a quiz based on the lesson plan."
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_message_quiz},
+                # Prefix with language
+                {"role": "user", "content": f"Italian: {lesson_plan}"},
+            ],
+            n=8,  # Maximum 8 multiple choice questions
+        )
+        quiz_questions = [
+            choice.message.content for choice in response.choices]
+        return quiz_questions
+
+    except Exception as e:
+        print(e)
+        raise CustomError("Error generating quiz from lesson plan.")
+
 
 
     
