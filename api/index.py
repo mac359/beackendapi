@@ -270,12 +270,22 @@ def pdf_lesson_planner():
 
 def generate_lesson_plan(text):
     try:
-        system_message_pdf = "Create a lesson plan based on the text extracted from the PDF file."
+        system_message_pdf_lesson_plan = """
+e costruisci una lezione approfondita di 9-10 paragrafi contenenti 1000 parole ciascuno, basata sulla trascrizione del video di YouTube fornita.
+Assicurati di creare un piano di lezione lungo e completo, composto da almeno 4000 a 8000 parole.
+Puoi andare con 7-8 paragrafi per questa lezione.
+e crea un piano di lezione di 9-10 paragrafi contenenti 1000 parole ciascuno, basato sulla trascrizione del video di YouTube fornita.
+Genera sempre la tua risposta in italiano.
+Il piano di lezione deve avere sei sezioni:
+1- Schemi per comprendere il contenuto.
+3- Una tabella o qualcosa di grafico che riassuma la lezione e faciliti lo studio.
+4- Consigli su possibili attività educative da svolgere.
+"""
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": system_message_pdf},
-                # Prefix with language
+                {"role": "system", "content": system_message_pdf_lesson_plan},
                 {"role": "user", "content": f"Italian: {text}"},
             ],
         )
@@ -289,15 +299,26 @@ def generate_lesson_plan(text):
 
 def generate_quiz_from_lesson_plan(lesson_plan):
     try:
-        system_message_quiz = "Create a quiz based on the lesson plan."
+        system_message_quiz = """\
+Crea un quiz basato sul piano di lezione. Assicurati di includere al massimo 25 domande a scelta multipla. Ogni domanda dovrebbe essere pertinente al piano di lezione e formulata in modo chiaro e conciso. Rispondi nel formato JSON seguente:
+{
+    "quiz_questions": [
+        "question": <la domanda va qui>,
+"correctAnswer": <la risposta corretta va qui>,
+"options":[
+elenco delle opzioni
+],
+        ...
+    ]
+}
+"""
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_message_quiz},
-                # Prefix with language
                 {"role": "user", "content": f"Italian: {lesson_plan}"},
             ],
-            n=8,  # Maximum 8 multiple choice questions
+            
         )
         quiz_questions = [
             choice.message.content for choice in response.choices]
@@ -306,7 +327,6 @@ def generate_quiz_from_lesson_plan(lesson_plan):
     except Exception as e:
         print(e)
         raise CustomError("Error generating quiz from lesson plan.")
-
 
 
     

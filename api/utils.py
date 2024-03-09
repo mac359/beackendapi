@@ -11,77 +11,81 @@ from exceptions import CustomError
 load_dotenv()
 client = OpenAI()
 
-system_message_indepth_lecture_video_incomplete = """\
-e costruisci una lezione approfondita basata sulla trascrizione del video di YouTube fornita. \
-Assicurati di creare un piano di lezione lungo e completo. Puoi andare con 7-8 paragrafi per questa lezione. \
+system_message_indepth_lecture_video_incomplete = """
+e costruisci una lezione approfondita di 9-10 paragrafi contenenti 1000 parole ciascuno, basata sulla trascrizione del video di YouTube fornita.
+Assicurati di creare un piano di lezione lungo e completo, composto da almeno 4000 a 8000 parole.
+Puoi andare con 7-8 paragrafi per questa lezione.
 Genera sempre la tua risposta in italiano. Rispondi nel seguente formato JSON:
 {
 "in_depth_lecture": "La lezione approfondita va qui"
 }
 """
 
-system_message_indepth_lecture_website_incomplete = """\
-e costruisci una lezione approfondita basata sul contenuto estratto da un sito web. \
-Assicurati di creare un piano di lezione lungo e completo. Puoi andare con 7-8 paragrafi per questa lezione. \
-Genera sempre la tua risposta in italiano. \
+system_message_indepth_lecture_website_incomplete = """
+e costruisci una lezione approfondita di 9-10 paragrafi contenenti 1000 parole ciascuno, basata sul contenuto estratto da un sito web.
+Assicurati di creare un piano di lezione lungo e completo, composto da almeno 4000 a 8000 parole.
+Puoi andare con 7-8 paragrafi per questa lezione.
+Genera sempre la tua risposta in italiano.
 Rispondi nel seguente formato JSON:
 {
-    "in_depth_lecture": "The in-depth lecture goes here"
+"in_depth_lecture": "La lezione approfondita va qui"
 }
 """
 
-system_message_video_incomplete = """\
-e crea un piano di lezione basato sulla trascrizione del video di YouTube che ti viene fornita. \
-Genera sempre la tua risposta in italiano. \
+system_message_video_incomplete = """
+e crea un piano di lezione di 9-10 paragrafi contenenti 1000 parole ciascuno, basato sulla trascrizione del video di YouTube fornita.
+Genera sempre la tua risposta in italiano.
 Il piano di lezione deve avere sei sezioni:
 1- Schemi per comprendere il contenuto.
-2- Un semplice quiz a risposta multipla (10 domande).
+2- Un semplice quiz a risposta multipla di 25 domande dal piano di lezione (25 domande).
 3- Una tabella o qualcosa di grafico che riassuma la lezione e faciliti lo studio.
 4- Consigli su possibili attività educative da svolgere.
 
 Rispondi nel seguente formato JSON:
 {
-    "outlines": "The outlines go here",
-    "mcqs": [
-    {
-        "question": <question goes here>,
-        "correctAnswer": <correct answer goes here>,
-        "options":[
-        list of options
-        ]
-    }
-    ]
-    "table": "A table in markdown format goes here",
-    "activities": "The activities go here, also seperate each activity with new line",
+"outlines": "The outlines go here",
+"mcqs": [
+{
+"question": <la domanda va qui>,
+"correctAnswer": <la risposta corretta va qui>,
+"options":[
+elenco delle opzioni
+]
+}
+]
+"table": "Una tabella in formato markdown va qui",
+"activities": "Le attività vanno qui, separa anche ciascuna attività con una nuova riga",
 }
 """
 
-system_message_website_incomplete = """\
-e crea un piano di lezione basato sul contenuto estratto da un sito web. \
-Genera sempre la tua risposta in italiano. \
+system_message_website_incomplete = """
+e crea un piano di lezione di 9-10 paragrafi contenenti 1000 parole ciascuno, basato sul contenuto estratto da un sito web.
+Genera sempre la tua risposta in italiano.
 Il piano di lezione deve avere sei sezioni:
 1- Schemi per comprendere il contenuto.
-2- Un semplice quiz a risposta multipla (10 domande).
+2- Un semplice quiz a risposta multipla di 25 domande dal piano di lezione (25 domande).
 3- Una tabella o qualcosa di grafico che riassuma la lezione e faciliti lo studio.
 4- Consigli su possibili attività educative da svolgere.
 
 Rispondi nel seguente formato JSON:
 {
-    "outlines": "The outlines go here",
-    "mcqs": [
-    {
-        "question": <question goes here>,
-        "correctAnswer": <correct answer goes here>,
-        "options":[
-        list of options
-        ]
-    }
-    ]
-    "table": "A table in markdown format goes here",
-    "activities": "The activities go here, also seperate each activity with new line",
+"outlines": "The outlines go here",
+"mcqs": [
+{
+"question": <la domanda va qui>,
+"correctAnswer": <la risposta corretta va qui>,
+"options":[
+elenco delle opzioni
+]
+}
+]
+"table": "Una tabella in formato markdown va qui",
+"activities": "Le attività vanno qui, separa anche ciascuna attività con una nuova riga",
 
 }
 """
+
+
 
 ###########################################
 
@@ -181,24 +185,27 @@ def get_video_transcript(youtube_url):
 #             "Sorry, the Transcript for this video is not available. Please provide another YouTube video URL.")
 
     
-
 def get_response_video(system_message_video, transcript):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": system_message_video},
-            {"role": "user", "content": "Transcript: " + transcript},
-        ],
-        response_format={"type": "json_object"},
-    )
-    json_format = json.loads(response.choices[0].message.content)
-    return json_format
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_message_video},
+                {"role": "user", "content": "Transcript: " + transcript},
+            ],
+            response_format={"type": "json_object"},
+           
+        )
+        json_format = json.loads(response.choices[0].message.content)
+        return json_format
+    except Exception as e:
+        print(e)
+        raise CustomError("Error generating response for video.")
 
 
 def get_response_website(system_message_website, url):
     try:
         text = dynamic_scraper(url)
-        print("Scraped Text: ")
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -206,14 +213,14 @@ def get_response_website(system_message_website, url):
                 {"role": "user", "content": "Scraped Text: " + text},
             ],
             response_format={"type": "json_object"},
+            
         )
-        print("Response: ")
         json_format = json.loads(response.choices[0].message.content)
-        print("JSON Format: ")
         return json_format
     except Exception as e:
         print(e)
-        raise CustomError("Sorry, the website is not available. Please provide a valid website URL.")
+        raise CustomError("Error generating response for website.")
+
 
 def get_indepth_lecture_video(system_message, transcript):
     response = client.chat.completions.create(
@@ -223,6 +230,7 @@ def get_indepth_lecture_video(system_message, transcript):
             {"role": "user", "content": "Transcript: " + transcript},
         ],
         response_format={"type": "json_object"},
+        
     )
     json_format = json.loads(response.choices[0].message.content)
     return json_format
@@ -236,6 +244,7 @@ def get_indepth_lecture_website(system_message, url):
             {"role": "user", "content": "Scraped Text: " + text},
         ],
         response_format={"type": "json_object"},
+        
     )
     json_format = json.loads(response.choices[0].message.content)
     return json_format
